@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="oc.md.mapper.MypageMapper">
+	<!-- 유저의 총 주문 횟수 파악 , order_state가 1인 주문만 불러오도록(1 : 주문 완료)-->
+	<select id="userPaymentCount" resultType="long" parameterType="String">
+		select count(p.order_idx) as all_mypayment from payment p join order_main o on p.order_idx=o.order_idx where p.email=#{email} and order_state = 1 
+	</select>
+	<!-- 유저의 배송상태에 따른 개수를 리턴 (오늘 날짜 기준 한달전까지만 검색)-->
+	<select id="myDeliveryState" resultType="long" parameterType="hashmap">
+<!-- 		select count(*) from payment py join  -->
+<!-- 		(select * from order_main o join delivery d on o.delivery_idx=d.delivery_idx  -->
+<!-- 		where delivery_state=#{delivery_state} and  o.order_date between to_char(add_months(SYSDATE, -1), 'YYYYMMDD') and to_char(SYSDATE, 'YYYYMMDD')) omy -->
+<!-- 		on py.order_idx = omy.order_idx where py.email=#{email}	 -->
+		<![CDATA[
+		select count(*) from PAYMENT py join 
+		(select * from order_main o join delivery d on o.delivery_idx=d.delivery_idx 
+		where delivery_state= #{delivery_state} and  o.order_date >= add_months(SYSDATE, -1) and o.order_date <= SYSDATE) omy
+		on py.order_idx = omy.order_idx where py.email = #{email}
+		]]> 
+	</select>
+	<!-- 유저의 마지막(최근에) 주문한 리스트 띄우기 -->
+	<select id="lastListPayment" resultType="LastPayDateVO" parameterType="String">
+<!-- 		select oo.list_idx,oo.totalcount,oo.order_idx,oo.f_name,oo.order_date,oo.delivery_state,oo.email,ff.f_price from FOOD ff join( -->
+<!-- 		select a.list_idx,a.totalcount,a.order_idx,a.f_name,a.order_date,a.delivery_state,p.email from payment p join( -->
+<!-- 		select ol.list_idx,ol.totalcount,ol.order_idx,ol.f_name,jord.order_date,jord.delivery_state from order_list ol join (select * from (select ROWNUM rnum, aa.* from( -->
+<!-- 		select om.order_idx,om.order_date,d.delivery_state from order_main om join delivery d on om.delivery_idx=d.delivery_idx order by om.order_date desc -->
+<!-- 		) aa) where rnum = 1) jord on ol.order_idx=jord.order_idx -->
+<!-- 		) a on p.order_idx=a.order_idx where p.email = #{email} -->
+<!-- 		) oo on ff.f_name = oo.f_name -->
+		select * from delivery dy join(select om.order_idx,om.delivery_idx,om.order_date,om.use_point,om.order_state,om.order_addr,py.email,py.pay_price,py.pay_type from ORDER_MAIN om join (select * from payment where email = #{email}) py on om.order_idx=py.order_idx)
+		pom on dy.delivery_idx=pom.delivery_idx where pom.order_date between (select to_char(add_months(SYSDATE,-1), 'YY/MM/DD') as before_motnh from dual) and SYSDATE
+	</select>
+	<!-- 유저가 주문한 주문번호의 상세내역을 출력 -->
+	<select id="orderListPayment" resultType="LastPayDateVO" parameterType="OrderListDetailVO">
+	select oo.list_idx,oo.totalcount,oo.order_idx,oo.f_name,oo.order_date,oo.delivery_state,oo.email,ff.f_price,ff.f_img,ff.f_type from FOOD ff join(
+	select a.list_idx,a.totalcount,a.order_idx,a.f_name,a.order_date,a.delivery_state,p.email from payment p join(
+	select ol.list_idx,ol.totalcount,ol.order_idx,ol.f_name,jord.order_date,jord.delivery_state from order_list ol join (select * from (select ROWNUM rnum, aa.* from(
+	select om.order_idx,om.order_date,d.delivery_state from order_main om join delivery d on om.delivery_idx=d.delivery_idx order by om.order_date desc
+	) aa)) jord on ol.order_idx=jord.order_idx
+	) a on p.order_idx=a.order_idx where p.email = #{email}
+	) oo on ff.f_name = oo.f_name where oo.order_idx = #{order_idx}
+	</select>
+	<!-- 내가 쓴 글 목록 -->
+	<select id="selectByFood_recipe_list" resultType="Recipe_list" parameterType="hashmap"> 
+ 	    <![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+		select r.email, r.rc_idx, r.rc_title, r.rc_date, r.rc_num, r.rc_img, ut.user_name from RECIPE r join USER_TB ut on r.email=ut.email where r.email=#{email} order by RC_DATE desc
+		) aa) 
+		where rnum between #{page.start} and #{page.last}
+		]]>
+ 	</select>
+	
+	<select id="selectCount" resultType="long" parameterType="hashmap">
+		select COUNT(*) from RECIPE r join USER_TB ut on r.email=ut.email where r.email=#{email}
+	</select>
+<!-- 	마이페이지 작성한 레시피 (프론트하면서 추가) -->
+	<select id="recipe_list_count" resultType="long" parameterType="String">
+		select COUNT(*) from RECIPE r join USER_TB ut on r.email=ut.email where r.email=#{email}
+	</select>
+	<!-- 회원정보 수정 -->
+	<select id="Mypage" resultType="User_tb" parameterType="String">
+		select email, user_name, phone, addr, user_type, point from USER_TB where email=#{email}
+	</select>
+	<update id="update" parameterType="User_tb">
+		update USER_TB set user_name=#{user_name}, phone=#{phone}, addr=#{addr} where email=#{email} 
+	</update>
+	<!-- 관리자레시피 좋아요 -->
+		<select id="Good_Manager" resultType="MyGoodVo" parameterType="hashmap">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+		select * from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{user_email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MANAGER'
+		) aa) 
+		where rnum between #{page.start} and #{page.last}
+		]]>
+	</select>
+	
+	<select id="GdManagerSelectCount" resultType="long" parameterType="hashmap">
+		select COUNT(*) from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{user_email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MANAGER'
+	</select>
+<!-- 	검색 -->
+	<select id="Good_Manager_Search" resultType="MyGoodVo" parameterType="PagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+		select * from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MANAGER' and r.rc_title like '%'||#{rc_title}||'%'
+		) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	
+	<select id="selectCount_Search" resultType="long" parameterType="PagingVO">
+		select COUNT(*) from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MANAGER' and r.rc_title like '%'||#{rc_title}||'%'
+	</select>
+	
+	<select id="Good_Manager_category" resultType="MyGoodVo" parameterType="PagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+		select * from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MANAGER' and r.rc_type = #{category}
+		) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="selectCount_category" resultType="long" parameterType="PagingVO">
+		select COUNT(*) from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MANAGER' and r.rc_type = #{category}
+	</select>
+	<!-- 유저 좋아요 리스트 -->
+	<!-- 전체 -->
+		<select id="Good_User" resultType="MyGoodVo" parameterType="hashmap">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+		select * from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{user_email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MEMBER'
+		) aa) 
+		where rnum between #{page.start} and #{page.last}
+		]]>
+	</select>	
+	<select id="GdUserSelectCount" resultType="long" parameterType="hashmap">
+		select COUNT(*) from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{user_email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MEMBER'
+	</select>
+	
+	<!-- 유저 레시피 검색 프론트하면서 추가 -->
+	<select id="Good_User_Search" resultType="MyGoodVo" parameterType="PagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+		select * from 
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MEMBER' and ${category} like '%'||#{sort}||'%')aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="userSelectCount_User_Search" resultType="long" parameterType="PagingVO">
+		select COUNT(*) from
+		(select gd.email as user_email, gd.rc_idx, gd.good_date, ut.user_name 
+		from USER_TB ut join GOOD gd on ut.email = gd.email 
+		where ut.email = #{email}) a join RECIPE r on a.rc_idx = r.rc_idx where r.USER_TYPE='MEMBER' and ${category} like '%'||#{sort}||'%'
+	</select>
+	
+	<!-- 주문리스트 -->
+	<!--추가-->
+	<select id="MyOrderList" resultType="My_order_list" parameterType="hashmap">
+		 <![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (
+    	select * from
+    	(select om.order_idx, om.order_date, om.use_point ,d.delivery_state 
+    	from DELIVERY d join ORDER_MAIN om on d.delivery_idx=om.delivery_idx)
+    	a join PAYMENT p on a.order_idx=p.order_idx where p.email=#{email}
+    	) aa) 
+    	where rnum between #{page.start} and #{page.last} order by order_date desc
+		]]>
+	</select>
+	<!--추가-->
+	<select id="selectCount_MyOrderlist" resultType="long" parameterType="hashmap">
+		select COUNT(*) from 
+		(select om.order_idx, om.order_date, om.use_point ,d.delivery_state 
+        from DELIVERY d join ORDER_MAIN om on d.delivery_idx=om.delivery_idx)
+        a join PAYMENT p on a.order_idx=p.order_idx where p.email=#{email}
+	</select>
+	
+	<select id="MyOrderList_Detail" resultType="OrderList" parameterType="OrderListDetailVO">
+        select * from postscript ps join(
+        select a.order_idx,a.list_idx,a.f_name,a.totalcount,a.f_price,a.f_type,a.email,a.pay_price,a.f_img, de.delivery_idx,de.delivery_date,de.delivery_num,de.delivery_state from (select c.order_idx, c.list_idx, c.f_name,c.totalcount,f.f_price,f.f_type,c.email,c.pay_date,c.pay_price, f.f_img,c.delivery_idx from 
+        (select ol.list_idx,ol.order_idx,ol.f_name,ol.totalcount,b.email,b.pay_date,b.pay_price,b.delivery_idx from ORDER_LIST ol join 
+        (select p.order_idx,p.email,p.pay_date,p.pay_price, om.delivery_idx from PAYMENT p join ORDER_MAIN om on p.order_idx = om.order_idx where email = #{email}) 
+        b on ol.order_idx = b.order_idx) c join FOOD f on c.f_name=f.f_name order by order_idx) a left outer join DELIVERY de on a.delivery_idx = de.delivery_idx where order_idx=#{order_idx}
+        ) aaa on ps.f_name=aaa.f_name where ps.order_idx= #{order_idx}
+    </select>
+	<!-- 후기작성 확인(1달이내) -->
+	<select id="checkPostscriptCount" resultType="long" parameterType="OrderListDetailVO">
+		select count(*) from postscript ps join(
+        select a.pay_date,a.order_idx,a.list_idx,a.f_name,a.totalcount,a.f_price,a.f_type,a.email,a.pay_price,a.f_img, de.delivery_idx,de.delivery_date,de.delivery_num,de.delivery_state from (select c.order_idx, c.list_idx, c.f_name,c.totalcount,f.f_price,f.f_type,c.email,c.pay_date,c.pay_price, f.f_img,c.delivery_idx from 
+		(select ol.list_idx,ol.order_idx,ol.f_name,ol.totalcount,b.email,b.pay_date,b.pay_price,b.delivery_idx from ORDER_LIST ol join 
+		(select p.order_idx,p.email,p.pay_date,p.pay_price, om.delivery_idx from PAYMENT p join ORDER_MAIN om on p.order_idx = om.order_idx where email = #{email}) 
+		b on ol.order_idx = b.order_idx) c join FOOD f on c.f_name=f.f_name order by order_idx) a left outer join DELIVERY de on a.delivery_idx = de.delivery_idx where order_idx=#{order_idx}
+        ) aaa on ps.f_name=aaa.f_name
+        where aaa.pay_date between (select to_char(add_months(SYSDATE,-1), 'YY/MM/DD') as before_motnh from dual) and SYSDATE
+	</select>
+	<!-- 주문내역 날짜선택 -->
+	<select id="MyOrderListSelectMonth" resultType="LastPayDateVO" parameterType="hashmap">
+		select * from (select ROWNUM rnum, aa.* from (
+    		select * from delivery dy join
+    		(select om.order_idx,om.delivery_idx,om.order_date,om.use_point,om.order_state,om.order_addr,py.email,py.pay_price,py.pay_type from ORDER_MAIN om join 
+    		(select * from payment where email = #{email}) py on om.order_idx=py.order_idx)
+    		pom on dy.delivery_idx=pom.delivery_idx where pom.order_date between (select to_char(add_months(SYSDATE,-#{month}), 'YY/MM/DD') as before_motnh from dual) and SYSDATE )aa) 
+    		where rnum between #{page.start} and #{page.last} order by order_date desc
+	</select>
+	<select id="selectCountMonth" resultType="long" parameterType="hashmap">
+		select COUNT(*) from(
+    		select * from delivery dy join
+    		(select om.order_idx,om.delivery_idx,om.order_date,om.use_point,om.order_state,om.order_addr,py.email,py.pay_price,py.pay_type from ORDER_MAIN om join 
+    		(select * from payment where email = #{email}) py on om.order_idx=py.order_idx)
+    		pom on dy.delivery_idx=pom.delivery_idx where pom.order_date between (select to_char(add_months(SYSDATE,-#{month}), 'YY/MM/DD') as before_motnh from dual) and SYSDATE)
+	</select>		
+	<!-- 환불요청 -->
+	<select id="selectDeliveryIdx" resultType="long" parameterType="String">
+		select delivery_idx from ORDER_MAIN where order_idx=#{order_idx}
+	</select>
+	<update id="refundRequest" parameterType="long">
+		update DELIVERY set delivery_state = '환불요청중' where delivery_idx = #{delivery_idx}  
+	</update>
+	<update id="udateOrderState" parameterType="String">
+		update ORDER_MAIN set order_state = 0 where order_idx = #{order_idx}
+	</update>
+</mapper>

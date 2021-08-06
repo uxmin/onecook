@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="oc.md.mapper.PaymentMapper">
+	<!-- 결제페이지 내에서 유저의 장바구니를 보여줌 -->
+	<select id="showPaymentPage" resultType="Cart" parameterType="User_tb">
+		select * from CART where email = #{email}
+	</select>
+	<!-- 포인트 사용시 해당유저의 포인트 감소 -->
+	<update id="userPointDecrease" parameterType="hashmap">
+		update USER_TB set point = point - #{use_point} where email = #{email}
+	</update>
+	<!-- 결제시 해당 재료의 개수를 파악 -->
+	<select id="fcountSelect" resultType="long" parameterType="Cart">
+		select f_count from FOOD where f_name = #{f_name}
+	</select>
+	<!-- 결제시 해당 재료의 재고수량을 감소 -->
+	<update id="fcountDecrease">
+		update FOOD set f_count = f_count - #{cart_count} where f_name = #{f_name}
+	</update>
+	<!-- 장바구니에서 결제 페이지로 이동 시 바뀐 재료의 수량을 업데이트 -->
+	<update id="updateCartCount" parameterType="hashmap">
+		update CART set cart_count = #{cararr} where cart_idx = #{cidxarr}
+	</update>
+	<!-- 최초 주문 시 '결제 완료' -->
+	<insert id="insertDelivery">
+		<selectKey keyProperty="delivery_idx" resultType="long" order="BEFORE">
+			select DELIVERY_SEQ_PK.nextval from DUAL
+		</selectKey>
+			insert into DELIVERY values(#{delivery_idx}, null, null, '결제완료')
+	</insert>
+
+
+	<insert id="insertOrderMain" parameterType="PaymentAddVO">
+		insert into ORDER_MAIN values(#{order_idx}, #{delivery_idx}, #{pay_date}, #{order_price}, #{use_point}, #{order_state}, #{order_addr})
+	</insert>
+	
+	<insert id="insertPayment" parameterType="PaymentAddVO">
+		insert into PAYMENT values(#{order_idx}, #{email}, #{pay_date}, #{pay_price}, #{pay_type}, #{sale_type})
+	</insert>
+	
+	<insert id="insertOrderList" parameterType="Cart">
+		<selectKey keyProperty="cart_idx" resultType="long" order="BEFORE">
+			select ORDER_LIST_SEQ_PK.nextval from DUAL
+		</selectKey>
+			insert into ORDER_LIST values(#{cart_idx}, #{order_idx}, #{f_name}, #{cart_count})	
+	</insert>
+	<!-- 후기 유무 테이블 insert -->
+	<insert id="insertPostScriptList" parameterType="Cart">
+		insert into POSTSCRIPT values(POSTSCRIPT_SEQ_PK.nextval, #{cart_idx}, #{order_idx}, #{f_name}, 0)
+	</insert>
+	<!-- 결제시 장바구니 비우기 -->
+	<delete id="deleteCartList" parameterType="Cart">
+		delete from CART where email = #{email} and f_name like #{f_name}
+	</delete>
+	<!-- 장바구니 -->
+	<select id="list" resultType="Cart" parameterType="String">
+		select c.*, f.f_price, f.f_type, f.f_img from cart c, food f where c.f_name=f.f_name and c.email = #{email}
+	</select>
+	
+	<!--  where절로 email을 추가해서 특정 유저의 카트가 지워지도록 변경해줘야함 -->
+	<delete id="delEach" parameterType="long">
+		delete from CART where CART_IDX = #{cart_idx}
+	</delete>
+	
+	<!--  where절로 email을 추가해서 특정 유저의 카트가 지워지도록 변경해줘야함 -->
+	<delete id="delAll">
+		delete from CART
+	</delete>
+	
+	<insert id="insertCart" parameterType="Cart">
+		insert into CART values(CART_SEQ_PK.nextval, #{email}, #{f_name}, #{cart_count})
+	</insert>
+	
+	<update id="updateCart" parameterType="Cart">
+		update CART set CART_COUNT = CART_COUNT + #{cart_count} where CART_IDX = #{cart_idx}
+	</update>
+	
+	<!-- 결제창 -->
+	<select id="getPayment" resultType="FoodCartVO" parameterType="long">
+		select ct.cart_idx, ct.email, ct.f_name, ct.cart_count, fd.f_type, fd.f_price, fd.f_count, fd.f_sales, fd.f_weight, fd.f_origin, fd.f_package, fd.f_date, fd.f_img from CART ct join FOOD fd on ct.f_name = fd.f_name where ct.cart_idx = #{cidxarr}
+	</select>
+	
+	<!-- 결제 완료 창 -->
+	<select id="paymentResult" resultType="OrderListVO" parameterType="String">
+		select * from order_main om join(
+		select ol.list_idx,ol.order_idx,ol.f_name,ol.totalcount, fd.f_type,fd.f_price,fd.f_count,fd.f_sales,fd.f_weight,fd.f_origin,fd.f_package,fd.f_date,fd.f_img 
+		from order_list ol join food fd on ol.f_name=fd.f_name  where order_idx= #{order_idx}
+		) oly  on om.order_idx=oly.order_idx
+<!-- 			select * from payment py join( -->
+<!-- 	        select oly.list_idx,oly.order_idx,oly.f_name,oly.totalcount, oly.f_type,oly.f_price,oly.f_count,oly.f_sales,oly.f_weight,oly.f_origin,oly.f_package,oly.f_date,oly.f_img from order_main om join( -->
+<!-- 			select ol.list_idx,ol.order_idx,ol.f_name,ol.totalcount, fd.f_type,fd.f_price,fd.f_count,fd.f_sales,fd.f_weight,fd.f_origin,fd.f_package,fd.f_date,fd.f_img  -->
+<!-- 			from order_list ol join food fd on ol.f_name=fd.f_name  where order_idx= #{order_idx} -->
+<!-- 			) oly  on om.order_idx=oly.order_idx -->
+<!-- 	        ) j on py.order_idx = j.order_idx -->
+		</select>
+	<!-- 해당 유저의 포인트를 검색 -->
+	<select id="selectUserPoint" resultType="long" parameterType="String">
+		select point from USER_TB where email = #{email}
+	</select>
+</mapper>

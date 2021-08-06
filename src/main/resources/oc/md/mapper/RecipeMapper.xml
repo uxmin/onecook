@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="oc.md.mapper.RecipeMapper">
+	<select id="categorySelect" resultType="Food" parameterType="String">
+		select f_name from FOOD where f_type=#{f_type}
+	</select>
+	
+	<insert id="userRecipeInsert" parameterType="RecipeAddVO">
+		<selectKey keyProperty="rc_idx" resultType="long" order="BEFORE">
+			select RECIPE_SEQ_PK.nextval from DUAL
+		</selectKey>
+			insert into RECIPE values(#{rc_idx}, #{email}, #{user_type}, #{rc_title}, null, #{rc_num}, SYSDATE, #{rc_img})
+	</insert>
+	
+	<insert id="userRecipeCountInsert" parameterType="RecipeAddVO">
+		insert into IMAGE values(IMAGE_SEQ_PK.nextval, #{rc_idx}, null, null, #{get_img_cont})
+	</insert>
+	
+	<insert id="recipeInsert" parameterType="RecipeAddVO">
+		<selectKey keyProperty="rc_idx" resultType="long" order="BEFORE">
+			select RECIPE_SEQ_PK.nextval from DUAL
+		</selectKey>
+			insert into RECIPE values(#{rc_idx}, #{email}, #{user_type}, #{rc_title}, #{rc_type}, #{rc_num}, SYSDATE, #{rc_img})
+	</insert>
+	
+	<insert id="recipeImageInsert" parameterType="RecipeAddVO">
+		insert into IMAGE values(IMAGE_SEQ_PK.nextval, #{rc_idx}, null, #{image_tb_file_nm}, #{get_img_cont})
+	</insert>
+	
+	<insert id="recipeMaterialInsert" parameterType="RecipeAddVO">
+		insert into RECIPE_MATERIAL values(RECIPE_MATERIAL_SEQ_PK.nextval, #{rc_idx}, #{get_f_name, jdbcType=VARCHAR}, #{get_rt_cont})
+	</insert>
+	
+	<insert id="recipeNutrientInsert" parameterType="RecipeAddVO">
+		insert into recipe_nutrient values(RECIPE_NUTRIENT_SEQ_PK.nextval, #{rc_idx}, #{get_nutrient_nm}, #{get_rate})
+	</insert>
+	
+	<!-- 기본 리스트/페이지 -->
+	<select id="recipePage" resultType="Recipe" parameterType="FoodPagingVO">
+			<![CDATA[
+			select * from (select ROWNUM rnum, aa.* from 
+			(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    		from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+            (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx order by v1.rc_idx desc) aa) 
+			where rnum between #{start} and #{last}
+			]]>
+	</select>
+	<select id="recipeCount" resultType="long">
+		select COUNT(RC_DATE) from RECIPE where user_type = 'MANAGER'
+	</select>
+	
+	<!-- 카테고리 리스트/페이지 -->
+	<select id="recipeCatPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!--     	from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.rc_type = #{category} and r.user_type = 'MANAGER') aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.rc_type = #{category} and r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx order by v1.rc_idx) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="recipeCatCount" resultType="long" parameterType="String">
+		select COUNT(RC_DATE) from RECIPE where RC_TYPE = #{category} and user_type = 'MANAGER'
+	</select>
+	
+	<!-- 정렬 -->
+	<select id="recipeAllNewPage" resultType="Recipe" parameterType="FoodPagingVO">
+		<![CDATA[        
+        select * from (select ROWNUM rnum, aa.* from 
+		( select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_idx desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="recipeAllGoodPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER' order by g_count desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[ 
+        select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email =#{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.g_count desc) aa) 
+		where rnum between  #{start} and #{last}
+		]]>
+	</select>
+	<select id="recipeAllViewPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER' order by r.rc_num desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+        select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_num desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="recipeCatNewPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.rc_type = #{category} and r.user_type = 'MANAGER' order by r.rc_date desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+        select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.rc_type = #{category} and r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_date desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="recipeCatGoodPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.rc_type = #{category} and r.user_type = 'MANAGER' order by g_count desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.rc_type = #{category} and r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by  g_count desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>	
+	</select>
+	<select id="recipeCatViewPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.rc_type = #{category} and r.user_type = 'MANAGER' order by r.rc_num desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.rc_type = #{category} and r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_num desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	
+	<select id="searchPage" resultType="Recipe" parameterType="FoodPagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.rc_title like '%'||#{rc_title}||'%' and r.user_type = 'MANAGER' order by r.rc_date desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from  
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.rc_title like '%'||#{rc_title}||'%' and r.user_type = 'MANAGER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_date desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="searchCount" resultType="long" parameterType="String">
+		select COUNT(RC_DATE) from RECIPE where RC_TITLE like '%'||#{rc_title}||'%' and user_type = 'MANAGER'
+	</select>
+	
+	<!-- 유저 -->
+	
+	<select id="recipeUserTop" resultType="Recipe" parameterType="Recipe">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count  -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx  -->
+<!-- 		where r.user_type='MEMBER' order by g_count desc) where rownum <= 5 -->
+<!--    		]]> -->
+   		<![CDATA[
+   		select * from (select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MEMBER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.g_count desc) where rownum <= 5
+   		]]>
+   		
+	</select>
+	<select id="recipeUserPage" resultType="Recipe" parameterType="PagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count  -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx  -->
+<!-- 		where r.user_type='MEMBER' order by r.rc_date desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!--    		]]> -->
+			<![CDATA[
+			select * from (select ROWNUM rnum, aa.* from 
+			(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+  		 	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+    	    (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MEMBER') v2 on v1.rc_idx=v2.rc_idx 
+      	 	order by v1.rc_date desc) aa) 
+			where rnum between #{start} and #{last}
+			]]>
+	</select>
+	<select id="recipeUserCount" resultType="long">
+		select COUNT(RC_DATE) from RECIPE where user_type = 'MEMBER'
+	</select>
+	
+	<select id="recipeUserSortGoodPage" resultType="Recipe" parameterType="PagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count  -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx  -->
+<!-- 		where r.user_type='MEMBER' order by g_count desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!--    		]]> -->
+			<![CDATA[
+			select * from (select ROWNUM rnum, aa.* from 
+			(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, 
+			r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count from RECIPE r left join (select rc_idx,count(rc_idx) 
+			c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+			(select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= 
+			#{good_email}) a on r.rc_idx=a.rc_idx where r.user_type = 'MEMBER') v2 on v1.rc_idx=v2.rc_idx order by 
+			v1.g_count desc) aa) 
+			where rnum between #{start} and #{last}
+			]]>
+	</select>
+	<select id="recipeUserSortViewPage" resultType="Recipe" parameterType="PagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count  -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx  -->
+<!-- 		where r.user_type='MEMBER' order by r.rc_num desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!--    		]]> -->
+   		<![CDATA[
+   		select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MEMBER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_num desc) aa) 
+		where rnum between #{start} and #{last}
+   		]]>
+	</select>
+	
+	<select id="searchUserTitlePage" resultType="Recipe" parameterType="PagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.rc_title like '%'||#{rc_title}||'%' and r.user_type = 'MEMBER' order by r.rc_date desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.rc_title like '%'||#{rc_title}||'%' and r.user_type = 'MEMBER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_date desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="searchUserTitleCount" resultType="long" parameterType="String">
+		select COUNT(RC_DATE) from RECIPE where RC_TITLE like '%'||#{rc_title}||'%' and user_type = 'MEMBER'
+	</select>
+	
+	<select id="searchUserWriterPage" resultType="Recipe" parameterType="PagingVO">
+<!-- 		<![CDATA[ -->
+<!-- 		select * from (select ROWNUM rnum, aa.* from  -->
+<!-- 		(select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count -->
+<!-- 		from RECIPE r left join (select rc_idx, count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.email like '%'||#{email}||'%' and r.user_type = 'MEMBER' order by r.rc_date desc) aa)  -->
+<!-- 		where rnum between #{start} and #{last} -->
+<!-- 		]]> -->
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from 
+		(select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.email like '%'||#{email}||'%' and r.user_type = 'MEMBER') v2 on v1.rc_idx=v2.rc_idx 
+        order by v1.rc_date desc) aa) 
+		where rnum between  #{start} and #{last}
+		]]>
+	</select>
+	<select id="searchUserWriterCount" resultType="long" parameterType="String">
+		select COUNT(RC_DATE) from RECIPE where EMAIL like '%'||#{email}||'%' and user_type = 'MEMBER'
+	</select>
+	
+	<!-- 관리자 레시피 상세 페이지 -->
+	<select id="selectManagerRecipe" resultType="Recipe" parameterType="Recipe">
+		select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MANAGER' and r.rc_idx= #{rc_idx}) v2 on v1.rc_idx=v2.rc_idx 
+	</select>
+	
+	<!-- 유저 레시피 상세 페이지 -->
+	<select id="selectUserRecipe" resultType="Recipe" parameterType="Recipe">
+<!-- 		select * from RECIPE where rc_idx = #{rc_idx} -->
+		select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MEMBER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email= #{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MEMBER' and r.rc_idx= #{rc_idx}) v2 on v1.rc_idx=v2.rc_idx 
+	</select>
+	
+	<select id="selectUserRecipeResult" resultType="Image" parameterType="long">
+		select * from IMAGE where rc_idx = #{rc_idx}
+	</select>
+	
+	<!-- 레시피 상세 페이지 -->
+	<update id="updateRecipeCount" parameterType="long">
+		update RECIPE set rc_num = rc_num + 1 where rc_idx = #{rc_idx}
+	</update>
+	
+	 <select id="selectByRecipe_detail" resultType="Recipe_detail" parameterType="long"> 
+ 	    select r.rc_title, i.img_file, i.img_cont from recipe r left outer join IMAGE i on r.rc_idx = i.rc_idx where r.rc_idx= #{rc_idx} and i.img_cont is not null
+ 	</select>
+ 	
+ 	<select id="selectByRecipe_material" resultType="Recipe_material" parameterType="long">
+ 		select rt_cont from RECIPE_MATERIAL where rc_idx=#{rc_idx}
+ 	</select>
+ 	
+ 	<select id="selectByRecipe_food" resultType="Recipe_food" parameterType="long">
+ 		select f.f_type, f.f_name, f.f_price, f.f_img from FOOD f join RECIPE_MATERIAL re on f.f_name=re.f_name where re.rc_idx=#{rc_idx} 
+ 	</select>
+ 	
+ 	<!-- 레시피 댓글  -->
+ 	<select id="selectRecipeName" resultType="String" parameterType="long">
+ 		select rc_title from RECIPE where rc_idx = #{get_rc_idx}
+ 	</select>
+ 	
+ 	 <!-- 레시피 작성자  이메일 -->
+ 	<select id="selectRecipeUserEmail" resultType="String" parameterType="long">
+ 		select email from RECIPE where rc_idx = #{get_rc_idx}
+ 	</select>
+ 	
+ 	
+ 	<select id="selectPerPage" resultType="Recipe_reply" parameterType="hashmap">
+	    <![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select u.email, rr.rc_idx, u.user_name, rr.reply_idx, rr.reply_cont, rr.reply_date, rr.reply_img, rr.reply_sub 
+		from USER_TB u join RECIPE_REPLY rr on u.email=rr.email where rc_idx=#{rc_idx} order by reply_idx desc) aa) where rnum between #{page.start} and #{page.last}
+		]]>
+	</select>
+	
+	<select id="selectCount" resultType="long" parameterType="long">
+		select COUNT(reply_idx) from RECIPE_REPLY where rc_idx=#{long_rc_idx}
+	</select>
+	<!-- 영양소 추가 -->
+	<select id="selectByRecipe_nutrient" resultType="Recipe_nutrient" parameterType="long">
+		select * from recipe_nutrient where rc_idx = #{rc_idx}
+	</select>
+	
+	<insert id="insertImage" parameterType="Recipe_reply"> 
+		insert into RECIPE_REPLY values(RECIPE_REPLY_SEQ_PK.nextval,#{email},#{rc_idx},#{reply_cont},SYSDATE,#{reply_img},#{reply_sub}) 
+ 	</insert>
+	
+	<insert id="insertNoImage" parameterType="Recipe_reply"> 
+		insert into RECIPE_REPLY values(RECIPE_REPLY_SEQ_PK.nextval,#{email},#{rc_idx},#{reply_cont},SYSDATE,null,#{reply_sub}) 
+ 	</insert>
+ 	
+ 	<select id="selectBySeq" resultType="Recipe_reply" parameterType="long"> 
+ 	    select * from RECIPE_REPLY where REPLY_IDX=#{reply_idx} 
+ 	</select>	
+ 	
+ 	<!-- 좋아요 -->
+ 	<insert id="listGoodClick" parameterType="Good">
+ 		insert into GOOD values(GOOD_SEQ_PK.nextval, #{email}, #{rc_idx}, SYSDATE)
+ 	</insert>
+ 	
+ 	<!-- 좋아요 취소 -->
+ 	<delete id="listUnGoodClick" parameterType="Good">
+ 		delete from GOOD where rc_idx=#{rc_idx}
+ 	</delete>
+ 	<!-- 관리자 레시피 상세 내용 좋아요 유무 확인-->
+ 	<select id="">
+ 		select * from (select r.rc_idx, r.email, r.user_type, r.rc_title, r.rc_type, r.rc_num, r.rc_date, r.rc_img, NVL(c, 0) as g_count
+    	from RECIPE r left join (select rc_idx,count(rc_idx) c from GOOD group by rc_idx) b on r.rc_idx = b.rc_idx where r.user_type = 'MANAGER') v1 join 
+        (select r.rc_idx,a.email as good_email from RECIPE r left join (select * from GOOD where email=#{good_email}) a on r.rc_idx=a.rc_idx  where r.user_type = 'MANAGER' and r.rc_idx= #{rc_idx}) v2 on v1.rc_idx=v2.rc_idx 
+ 	</select>
+ 	 <!-- 관리자 레시피 댓글 삭제 -->
+ 	<delete id="Managerdelete" parameterType="long">
+ 		delete from RECIPE_REPLY where REPLY_IDX=#{reply_idx}
+ 	</delete>
+ 	<select id="ManagerdeleteImage" resultType="String" parameterType="long">
+ 		select reply_img from RECIPE_REPLY where REPLY_IDX=#{reply_idx}
+ 	</select>
+ 	
+ 	<!-- 유저 레시피 댓글 삭제 -->
+<!--  	<delete id="Userdelete" parameterType="long"> -->
+<!--  		delete from RECIPE_REPLY where REPLY_IDX=#{reply_idx} -->
+<!--  	</delete> -->
+<!--  	<select id="UserdeleteImage" resultType="String" parameterType="long"> -->
+<!--  		select reply_img from RECIPE_REPLY where REPLY_IDX=#{reply_idx} -->
+<!--  	</select> -->
+
+	<!-- 유저 레시피 삭제 -->
+	<delete id="userRecipeImageDel" parameterType="long">
+		delete from IMAGE where rc_idx = #{rc_idx}
+	</delete>
+	
+	<delete id="userRecipeGoodDel" parameterType="long">
+		delete from GOOD where rc_idx = #{rc_idx}
+	</delete>
+	
+	<delete id="userRecipeReplyDel" parameterType="long">
+		delete from RECIPE_REPLY where rc_idx = #{rc_idx}
+	</delete>
+	
+	<delete id="userRecipeDel" parameterType="long">
+		delete from RECIPE where rc_idx = #{rc_idx}
+	</delete>
+	<!-- 매니저 레시피 삭제 -->
+	<delete id="managerNutrientDel" parameterType="long">
+		delete from RECIPE_NUTRIENT where rc_idx = #{rc_idx}
+	</delete>
+	
+	<delete id="managerMaterialDel" parameterType="long">
+		delete from RECIPE_MATERIAL where rc_idx = #{rc_idx}
+	</delete>
+	
+</mapper>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="oc.md.mapper.FoodMapper">
+	<insert id="FoodInsert" parameterType="FoodAddVo">
+		insert into FOOD values(#{f_name}, #{f_type}, #{f_price}, #{f_count}, #{f_sales}, #{f_weight}, #{f_origin}, #{f_package}, SYSDATE, #{f_img})
+	</insert>
+	
+	<insert id="FoodExplainInsert" parameterType="FoodAddVo">
+		insert into FOOD_EXPLAIN(f_name, fe_cont) values(#{f_name}, #{fe_cont})
+	</insert>
+	
+	<insert id="FoodDetailInsert">
+		insert into FOOD_DETAIL values(#{fd_f_name}, #{fd_fd_sub}, #{fd_fd_cont})
+	</insert>
+
+		<!-- 기본 리스트/페이지 -->
+	<select id="page" resultType="Food" parameterType="FoodPagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from Food order by F_DATE desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="count" resultType="long">
+		select COUNT(F_DATE) from Food
+	</select>
+	
+	<!-- 카테고리 리스트/페이지 -->
+	<select id="categoryPage" resultType="Food" parameterType="FoodPagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from Food where F_TYPE = #{category} order by F_DATE desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="categoryCount" resultType="long" parameterType="String">
+		select COUNT(F_DATE) from Food where F_TYPE = #{category}
+	</select>
+	
+	<!-- 검색 리스트/페이지 -->
+	<select id="searchPage" resultType="Food" parameterType="FoodPagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from Food where F_NAME like '%'||#{f_name}||'%' order by F_PRICE desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	<select id="searchCount" resultType="long" parameterType="String">
+		select COUNT(F_DATE) from Food where F_NAME like '%'||#{f_name}||'%'
+	</select>
+	
+	<!-- 가격 높은순/낮은순 리스트 -->
+	<select id="priceHighPage" resultType="Food" parameterType="FoodPagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from Food order by F_PRICE desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	
+	<select id="priceLowPage" resultType="Food" parameterType="FoodPagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from Food order by F_PRICE asc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	
+	<!-- 상세페이지 -->
+	<select id="read" resultType="Food" parameterType="String">
+		select * from Food where F_NAME = #{f_name}
+	</select>
+	
+	<!-- 상품문의 -->
+	<select id="pageQNA" resultType="QNA" parameterType="PagingVO">
+		<![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from USER_TB u join QNA q on u.email=q.email where f_name= #{f_name} order by q_idx desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	
+	<select id="countQNA" resultType="long" parameterType="PagingVO">
+		select COUNT(q_idx) from USER_TB u join QNA q on u.email=q.email where f_name=#{f_name}
+	</select>
+	
+	<update id="updateQNA" parameterType="QNA">
+		update QNA set Q_REPLY = #{q_reply} where Q_IDX = #{q_idx}
+	</update>	
+	
+	<insert id="insertQNA" parameterType="QNA">
+		insert into QNA values(QNA_SEQ_PK.nextval, #{email}, #{f_name}, SYSDATE, #{q_sub}, #{q_cont}, #{q_type}, null)
+	</insert>
+	
+	<!-- 재료 후기 리스트 -->
+	<select id="postScriptSelectPerPage" resultType="Review" parameterType="PagingVO2">
+	    <![CDATA[
+		select * from (select ROWNUM rnum, aa.* from (select * from USER_TB u join REVIEW rv on u.email=rv.email where f_name=#{f_name} order by RV_IDX desc) aa) 
+		where rnum between #{start} and #{last}
+		]]>
+	</select>
+	
+	<select id="postScriptSelectCount" resultType="long" parameterType="String">
+		select COUNT(RV_IDX) from USER_TB u join REVIEW rv on u.email=rv.email where f_name= #{f_name}
+	</select>
+	
+	<insert id="postScriptInsertImage" parameterType="Review"> 
+		<selectKey keyProperty="rv_idx" resultType="long" order="BEFORE">
+ 			select REVIEW_SEQ_PK.nextval from DUAL
+ 		</selectKey>
+			insert into REVIEW values(#{rv_idx},#{email},#{f_name},SYSDATE,#{rv_cont},#{rv_sub},#{rv_img},#{rv_num}, #{star}) 
+ 	</insert>
+ 	<!-- 후기작성시 이미지가 없는 후기일 경우 포인트를 50p만큼 업데이트 -->
+ 	<update id="imageUserPoint" parameterType="String">
+ 		update User_tb set point = point + 50 where email = #{email}
+ 	</update>
+ 	<!-- 후기작성 완료시 작성완료 상태인 1로 업데이트 -->
+ 	<update id="postScriptExistUpdate" parameterType="HashMap">
+ 		update POSTSCRIPT set PS_EXIST = 1 where order_idx = #{order_idx} and f_name = #{f_name}
+ 	</update>
+ 	
+	<insert id="postScriptInsertNoimage" parameterType="Review"> 
+		<selectKey keyProperty="rv_idx" resultType="long" order="BEFORE">
+ 			select REVIEW_SEQ_PK.nextval from DUAL
+ 		</selectKey>
+ 			insert into REVIEW values(#{rv_idx},#{email},#{f_name},SYSDATE,#{rv_cont},#{rv_sub}, null, #{rv_num}, #{star}) 		
+ 	</insert> 
+ 	
+  	<!-- 후기작성시 이미지가 있는 후기일 경우 포인트를 200p만큼 업데이트 -->
+ 	<update id="noImageUserPoint" parameterType="String">
+ 		update User_tb set point = point + 200 where email = #{email}
+ 	</update>
+ 		
+ 	<!-- 별(평점) 추가 -->
+<!--  	<insert id="postScriptInsertStar" parameterType="Review"> -->
+<!--  		insert into FD_RV_IDX values(FD_RV_IDX_SEQ_PK.nextval, #{rv_idx}, #{f_name}, #{email}, #{star}) -->
+<!--  	</insert> -->
+ 	
+ 	<select id="postScriptSelectBySeq" resultType="Review" parameterType="long"> 
+ 	    select * from REVIEW where RV_IDX=#{rv_idx} 
+ 	</select>
+
+ 	<update id="postScriptCountUpdate" parameterType="Review">
+	     update REVIEW set RV_NUM=rv_num+1 where RV_IDX=#{rv_idx} and F_NAME=#{f_name}
+	</update> 
+	
+	<select id="selectByFood_detail" resultType="Food_detail" parameterType="String"> 
+ 	    select * from FOOD_DETAIL where f_name=#{f_name} 
+ 	</select>
+ 	<!-- 최다 판매 순 보기 -->
+ 	<select id="bestFoodSelect" resultType="OrderList">
+		select * from (select ROWNUM rnum, aa.* from (
+		select fd.f_name,fd.f_price,fd.f_type,fd.f_img,ol.totalcount from FOOD fd join(
+		select f_name,sum(totalcount) as totalcount from ORDER_LIST group by f_name
+		) ol on fd.f_name=ol.f_name order by ol.totalcount desc
+		)aa) where rnum between 1 and 4
+ 	</select>
+ 	<!-- 평점 수  -->
+ 	<select id="reviewCount" resultType="long" parameterType="String">
+ 		select count(*) from REVIEW where f_name=#{f_name} and star is not null
+ 	</select>
+ 	<!-- 별점 평균  -->
+ 	<select id="averageStarCount" resultType="long" parameterType="String">
+ 		select NVL(ROUND(avg(star)),0) as avg_star from REVIEW where f_name=#{f_name}
+ 	</select>
+ 	<!-- 후기작성 유무 판단 -->
+ 	<select id="checkPostscript" resultType="Postscript" parameterType="Postscript">
+ 		select py.email,py.order_idx,py.pay_date,ps.f_name,ps.ps_exist from payment py join postscript ps on py.order_idx=ps.order_idx 
+ 		where email= #{email} and f_name= #{f_name}
+ 		and (py.pay_date between (select to_char(add_months(SYSDATE,-1), 'YY/MM/DD') as before_motnh from dual) and SYSDATE)
+ 	</select>
+ 	<!-- 상세설명(explain) -->
+ 	<select id="explainRead" resultType="Food_explain" parameterType="String">
+ 		select * from FOOD_EXPLAIN where f_name=#{f_name}
+ 	</select>
+ 	<!-- 재료 메인 리스트에서 장바구니에 현재 재료가 담겨있는지 확인 -->
+	<select id="existFnameSelect" resultType="String" parameterType="Cart">
+		select f_name from CART where email=#{email} and f_name=#{f_name}
+	</select>
+	<!-- 담고자 하는 재료가 이미 존재한다면 update -->
+	<update id="updateCartCount" parameterType="Cart">
+		update CART set cart_count = cart_count + #{cart_count} where email = #{email} and f_name = #{f_name}
+	</update>
+	<!-- 재료가 이미 존재하지 않으면 CART테이블을 인서트 -->
+	<insert id="insertCartCount" parameterType="Cart">
+		<![CDATA[
+		insert into CART values(CART_SEQ_PK.nextval, #{email}, #{f_name}, #{cart_count})
+		]]>
+	</insert>
+	
+	<delete id="postscriptDelete" parameterType="Review">
+		delete from REVIEW where rv_idx = #{rv_idx}
+	</delete>
+	
+	<delete id="qnaDelete" parameterType="QNA">
+		delete from QNA where q_idx = #{q_idx}
+	</delete>
+</mapper>

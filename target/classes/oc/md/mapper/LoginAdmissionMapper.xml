@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="oc.md.mapper.LoginAdmissionMapper">
+   <!-- mem_eamil 중복체크 --> 
+   <select id="selectCheckEmail" parameterType="String" resultType="String">
+   <![CDATA[
+   		select email from USER_TB where email like #{email}
+   	]]>
+   </select>
+   
+   <insert id="admissionOkUser" parameterType="User_tb">
+   		insert into USER_TB values(#{email}, #{pw}, #{user_name}, #{phone}, #{addr}, #{user_type}, #{point}, null)
+   </insert>
+   
+   <select id="selectUserTb" parameterType="User_tb" resultType="User_tb">
+   		select * from USER_TB where email = #{email}
+   </select>
+   
+   <select id="selectKakaoUserTb" parameterType="String" resultType="User_tb">
+   		select * from USER_TB where email = #{email}
+   </select>
+   
+   <select id="getKakaoUser" parameterType="String" resultType="String">
+   		select email from USER_TB where email = #{email}
+   </select>
+
+   <insert id="kAdmissionOkUser" parameterType="User_tb">
+   		insert into USER_TB(email, user_name, phone, addr, user_type, point, kakao_email) values(#{email}, #{user_name}, #{phone}, #{addr}, #{user_type}, #{point}, #{kakao_email})
+   </insert>
+</mapper>

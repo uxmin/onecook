@@ -1,0 +1,12 @@
+eclipse.preferences.version=1
+encoding//src/main/java/oc/md/vo/FoodPagingVO.java=UTF-8
+encoding//src/main/java/oc/md/vo/PagingVO.java=UTF-8
+encoding//src/main/java/oc/md/vo/PagingVO2.java=UTF-8
+encoding//src/main/webapp/WEB-INF/views/common/header.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/food/foodAdd.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/food/food_list_detail.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/index.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/login_admission/admission.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/login_admission/login.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/manage/salesChart.jsp=UTF-8
+encoding//src/main/webapp/assets/css/style.css=UTF-8

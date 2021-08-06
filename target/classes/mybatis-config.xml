@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+		<typeAlias alias="User_tb" type="oc.md.domain.User_tb"/>
+		<typeAlias alias="FoodAddVo" type="oc.md.vo.FoodAddVo"/>
+		<typeAlias alias="Food" type="oc.md.domain.Food"/>
+		<typeAlias alias="FoodPagingVO" type="oc.md.vo.FoodPagingVO"/>
+		<typeAlias alias="QNA" type="oc.md.domain.QNA"/>
+		<typeAlias alias="PagingVO" type="oc.md.vo.PagingVO"/>
+		<typeAlias alias="PagingVO2" type="oc.md.vo.PagingVO2"/>
+		<typeAlias alias="Review" type="oc.md.domain.Review"/>
+		<typeAlias alias="Food_detail" type="oc.md.domain.Food_detail"/>
+		<typeAlias alias="Food_explain" type="oc.md.domain.Food_explain"/>
+		<typeAlias alias="Recipe_material" type="oc.md.domain.Recipe_material"/>
+		<typeAlias alias="RecipeAddVO" type="oc.md.vo.RecipeAddVO"/>
+		<typeAlias alias="Recipe" type="oc.md.domain.Recipe"/>
+		<typeAlias alias="Good" type="oc.md.domain.Good"/>
+		<typeAlias alias="Image" type="oc.md.domain.Image"/>
+		<typeAlias alias="Recipe_detail" type="oc.md.domain.Recipe_detail"/>
+		<typeAlias alias="Recipe_food" type="oc.md.domain.Recipe_food"/>
+		<typeAlias alias="Recipe_reply" type="oc.md.domain.Recipe_reply"/>
+		<typeAlias alias="Cart" type="oc.md.domain.Cart"/>
+		<typeAlias alias="PaymentAddVO" type="oc.md.vo.PaymentAddVO"/>
+		<typeAlias alias="FoodCartVO" type="oc.md.vo.FoodCartVO"/>
+		<typeAlias alias="OrderListVO" type="oc.md.vo.OrderListVO"/>
+		<typeAlias alias="LastPayDateVO" type="oc.md.vo.LastPayDateVO"/>
+		<typeAlias alias="SalesChkVO" type="oc.md.vo.SalesChkVO"/>
+		<typeAlias alias="Recipe_list" type="oc.md.domain.Recipe_list"/>
+		<typeAlias alias="Stock_check" type="oc.md.domain.Stock_check"/>
+		<typeAlias alias="MyGoodVo" type="oc.md.vo.MyGoodVo"/>
+		<typeAlias alias="OrderList" type="oc.md.domain.OrderList"/>
+		<typeAlias alias="OrderListDetailVO" type="oc.md.vo.OrderListDetailVO"/>
+		<typeAlias alias="My_order_list" type="oc.md.domain.My_order_list"/>
+		<typeAlias alias="Delivery" type="oc.md.domain.Delivery"/>
+		<typeAlias alias="Order_main" type="oc.md.domain.Order_main"/>
+		<typeAlias alias="Recipe_nutrient" type="oc.md.domain.Recipe_nutrient"/>
+		<typeAlias alias="Fd_rv_idx" type="oc.md.domain.Fd_rv_idx"/>
+		<typeAlias alias="Postscript" type="oc.md.domain.Postscript"/>
+	</typeAliases>
+	
+	<mappers>
+		<mapper resource="oc/md/mapper/IndexMapper.xml" />
+		<mapper resource="oc/md/mapper/LoginAdmissionMapper.xml"/>
+		<mapper resource="oc/md/mapper/FoodMapper.xml"/>
+		<mapper resource="oc/md/mapper/RecipeMapper.xml"/>
+		<mapper resource="oc/md/mapper/PaymentMapper.xml"/>
+		<mapper resource="oc/md/mapper/MypageMapper.xml"/>
+		<mapper resource="oc/md/mapper/ManageMapper.xml"/>
+	</mappers>
+</configuration>
+
